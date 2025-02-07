@@ -22,3 +22,7 @@ FONT_FAMILY = 'Helvetica'
 FONT_SIZE_TITLE = 16
 FONT_SIZE_SUBTITLE = 14
 FONT_SIZE_BODY = 12
+
+# Template configurations
+TEMPLATES_DIR = 'templates'
+DEFAULT_TEMPLATE = 'default'
