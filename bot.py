@@ -1,12 +1,12 @@
 import logging
+from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
     filters,
-    ContextTypes
+    CallbackContext
 )
-from telegram import Update
 from hospital_parser import HospitalDataParser
 from pdf_generator import PDFGenerator
 from config import BOT_TOKEN
@@ -24,7 +24,7 @@ class HospitalBot:
         self.parser = HospitalDataParser()
         self.pdf_generator = PDFGenerator()
 
-    async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def start(self, update: Update, context: CallbackContext):
         """Handle /start command."""
         welcome_message = (
             "👋 Olá! Eu sou o bot de relatórios hospitalares.\n\n"
@@ -34,7 +34,7 @@ class HospitalBot:
         )
         await update.message.reply_text(welcome_message)
 
-    async def help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def help(self, update: Update, context: CallbackContext):
         """Handle /help command."""
         help_message = (
             "📋 Instruções de uso:\n\n"
@@ -48,7 +48,7 @@ class HospitalBot:
         )
         await update.message.reply_text(help_message)
 
-    async def process_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def process_message(self, update: Update, context: CallbackContext):
         """Process incoming messages and generate PDF reports."""
         try:
             # Send processing message
@@ -89,7 +89,7 @@ class HospitalBot:
             )
             await update.message.reply_text(error_message)
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def error_handler(update: Update, context: CallbackContext):
     """Handle errors."""
     logger.error(f"Update {update} caused error {context.error}")
     if update:
