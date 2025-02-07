@@ -12,10 +12,10 @@ from pdf_generator import PDFGenerator
 from config import BOT_TOKEN
 import traceback
 
-# Configure logging
+# Update logging section to be more verbose
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.DEBUG  # Changed from INFO to DEBUG for more detailed logs
 )
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,11 @@ class HospitalBot:
     def __init__(self):
         self.parser = HospitalDataParser()
         self.pdf_generator = PDFGenerator()
+        logger.info("HospitalBot initialized")
 
     async def start(self, update: Update, context: CallbackContext):
         """Handle /start command."""
+        logger.info(f"Start command received from user {update.effective_user.id}")
         welcome_message = (
             "👋 Olá! Eu sou o bot de relatórios hospitalares.\n\n"
             "Envie uma mensagem com os dados de ocupação hospitalar e "
@@ -51,6 +53,9 @@ class HospitalBot:
     async def process_message(self, update: Update, context: CallbackContext):
         """Process incoming messages and generate PDF reports."""
         try:
+            logger.info(f"Processing message from user {update.effective_user.id}")
+            logger.debug(f"Message content: {update.message.text[:100]}...")  # Log first 100 chars
+
             # Send processing message
             processing_message = await update.message.reply_text(
                 "🔄 Processando sua mensagem... Por favor, aguarde."
@@ -58,8 +63,10 @@ class HospitalBot:
 
             # Parse message
             data = self.parser.parse_message(update.message.text)
+            logger.info("Message parsed successfully")
 
             if not self.parser.validate_data(data):
+                logger.warning("Invalid message format")
                 await processing_message.edit_text(
                     "❌ Erro: Formato da mensagem inválido. "
                     "Certifique-se de que a mensagem está no formato correto."
@@ -67,7 +74,9 @@ class HospitalBot:
                 return
 
             # Generate PDF
+            logger.info("Generating PDF")
             pdf_buffer = self.pdf_generator.generate_pdf(data)
+            logger.info("PDF generated successfully")
 
             # Send PDF
             await context.bot.send_document(
@@ -76,6 +85,7 @@ class HospitalBot:
                 filename='relatorio_hospitalar.pdf',
                 caption="📊 Aqui está seu relatório de ocupação hospitalar."
             )
+            logger.info("PDF sent successfully")
 
             # Delete processing message
             await processing_message.delete()

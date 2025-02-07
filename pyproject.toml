@@ -9,4 +9,5 @@ dependencies = [
     "reportlab>=4.3.0",
     "telegram>=0.0.1",
     "trafilatura>=2.0.0",
+    "twilio>=9.4.4",
 ]

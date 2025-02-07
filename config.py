@@ -1,5 +1,7 @@
+import os
+
 # Telegram Bot Configuration
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"  # Replace with actual token
+BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Token will be set via environment variable
 
 # PDF Configuration
 PAGE_WIDTH = 595.27
