@@ -1,4 +1,3 @@
-
 """Utility functions for parsing hospital data."""
 
 import re
@@ -21,7 +20,7 @@ def clean_text(text: str) -> str:
     return ' '.join(text.split())
 
 def parse_simple_format(text: str) -> Dict:
-    """Parse simplified format with unit names, beds, and percentages."""
+    """Parse simplified format with unit names and percentages."""
     units = []
     stats = {
         'clinical_beds': 0,
@@ -30,30 +29,31 @@ def parse_simple_format(text: str) -> Dict:
         'occupied_icu': 0
     }
 
-    # Process non-empty lines
-    for line in (l.strip() for l in text.split('\n\n') if l.strip()):
-        match = re.match(
-            r'(.*?)\s*\((\d+)\s*leitos?\)\s*-\s*(\d+[,.]\d+|\d+)\s*%', 
-            clean_text(line)
-        )
-        
-        if not match:
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+
+    for line in lines:
+        # Extrair nome da unidade e porcentagem
+        parts = line.split('-')
+        if len(parts) != 2:
             continue
 
-        name, beds, rate = match.groups()
-        total_beds = int(beds)
-        occupancy_rate = float(rate.replace(',', '.'))
+        name = parts[0].strip()
+        # Assumir 10 leitos como padrão se não especificado
+        total_beds = 10
+
+        # Extrair porcentagem
+        occupancy_rate = parse_percentage(parts[1])
         occupied_beds = int(round(total_beds * occupancy_rate / 100))
 
         unit = {
-            'name': name.strip(),
+            'name': name,
             'total_beds': total_beds,
             'occupancy_rate': occupancy_rate,
             'occupied_beds': occupied_beds,
             'available_beds': total_beds - occupied_beds
         }
 
-        # Update statistics
+        # Atualizar estatísticas
         if 'UTI' in name or 'UCI' in name:
             stats['icu_beds'] += total_beds
             stats['occupied_icu'] += occupied_beds
@@ -73,7 +73,7 @@ def _generate_summary(stats: Dict) -> Dict:
     """Generate summary statistics from collected data."""
     total_beds = stats['clinical_beds'] + stats['icu_beds']
     total_occupied = stats['occupied_clinical'] + stats['occupied_icu']
-    
+
     return {
         'clinical_beds': stats['clinical_beds'],
         'occupied_clinical': stats['occupied_clinical'],
@@ -134,17 +134,17 @@ def _update_unit_stats(unit: Dict, line: str) -> None:
     """Update unit statistics based on detail line."""
     line_lower = line.lower()
     match = re.search(r'(\d+)', line)
-    
+
     if not match:
         return
-        
+
     value = int(match.group(1))
-    
+
     if any(x in line_lower for x in ['internados', 'ocupados']):
         unit['occupied_beds'] = value
     elif 'vaga' in line_lower:
         unit['available_beds'] = value
     elif 'bloqueado' in line_lower:
         unit['blocked_beds'] = value
-        
+
     unit['details'].append(line)
