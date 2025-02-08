@@ -1,28 +1,35 @@
+
+"""Configuration settings for the hospital report bot."""
+
 import os
 
-# Telegram Bot Configuration
-BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Token will be set via environment variable
+# Telegram Bot Settings
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# PDF Configuration
-PAGE_WIDTH = 595.27
-PAGE_HEIGHT = 841.89
+# PDF Document Settings
+PAGE_WIDTH = 595.27  # A4 width in points
+PAGE_HEIGHT = 841.89  # A4 height in points
 MARGIN = 50
 
-# Colors
+# Color Scheme
 COLORS = {
-    'primary': '#2c3e50',
-    'secondary': '#34495e',
-    'success': '#27ae60',
-    'danger': '#c0392b',
-    'white': '#ffffff',
+    'primary': '#2c3e50',    # Dark blue
+    'secondary': '#34495e',  # Lighter blue
+    'success': '#27ae60',    # Green
+    'danger': '#c0392b',     # Red
+    'white': '#ffffff',      # White
 }
 
-# Font configurations
+# Typography
 FONT_FAMILY = 'Helvetica'
-FONT_SIZE_TITLE = 16
-FONT_SIZE_SUBTITLE = 14
-FONT_SIZE_BODY = 12
+FONT_SIZES = {
+    'title': 16,
+    'subtitle': 14,
+    'body': 12,
+}
 
-# Template configurations
-TEMPLATES_DIR = 'templates'
-DEFAULT_TEMPLATE = 'default'
+# Template Settings
+TEMPLATES = {
+    'directory': 'templates',
+    'default': 'default',
+}
