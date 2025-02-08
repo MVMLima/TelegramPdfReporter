@@ -1,4 +1,3 @@
-
 """Configuration settings for the hospital report bot."""
 
 import os
@@ -27,6 +26,11 @@ FONT_SIZES = {
     'subtitle': 14,
     'body': 12,
 }
+
+# Font size constants for templates
+FONT_SIZE_TITLE = FONT_SIZES['title']
+FONT_SIZE_SUBTITLE = FONT_SIZES['subtitle']
+FONT_SIZE_BODY = FONT_SIZES['body']
 
 # Template Settings
 TEMPLATES = {

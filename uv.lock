@@ -700,8 +700,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "python-telegram-bot", specifier = "==20.7" },
-    { name = "reportlab", specifier = ">=4.3.0" },
+    { name = "python-telegram-bot", specifier = ">=20.0" },
+    { name = "reportlab", specifier = ">=4.0.0" },
     { name = "telegram", specifier = ">=0.0.1" },
     { name = "trafilatura", specifier = ">=2.0.0" },
     { name = "twilio", specifier = ">=9.4.4" },
