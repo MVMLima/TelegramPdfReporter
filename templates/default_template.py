@@ -1,13 +1,28 @@
 import io
 from templates.base_template import BaseTemplate
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from datetime import datetime
 from typing import Dict, List, Tuple
 from config import *
+from reportlab.lib.units import cm
 
 class DefaultTemplate(BaseTemplate):
     """Default template implementing the current PDF format."""
+
+    def _create_logo_header(self) -> Image:
+        """Create the header with CIEGES logo."""
+        logo_path = 'attached_assets/image_1739196333632.png'
+        img = Image(logo_path, width=PAGE_WIDTH-2*MARGIN, height=1.5*cm)
+        img.hAlign = 'CENTER'
+        return img
+
+    def _create_logo_footer(self) -> Image:
+        """Create the footer with CIEGES logo."""
+        logo_path = 'attached_assets/image_1739196845139.png'
+        img = Image(logo_path, width=PAGE_WIDTH-2*MARGIN, height=1.5*cm)
+        img.hAlign = 'CENTER'
+        return img
 
     def _create_header_section(self, data: Dict) -> Table:
         """Create the green header section with title and date."""
@@ -101,6 +116,10 @@ class DefaultTemplate(BaseTemplate):
         doc, buffer = self.create_document()
         story = []
 
+        # Add header logo
+        story.append(self._create_logo_header())
+        story.append(Spacer(1, 10))
+
         # Add header
         story.append(self._create_header_section(data))
         story.append(Spacer(1, 20))
@@ -115,6 +134,10 @@ class DefaultTemplate(BaseTemplate):
         elif 'hospitals' in data:
             for hospital in data['hospitals']:
                 story.append(self._create_occupancy_table(hospital['units']))
+
+        # Add footer logo with spacing
+        story.append(Spacer(1, 30))
+        story.append(self._create_logo_footer())
 
         # Build PDF
         doc.build(story)
