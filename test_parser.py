@@ -2,16 +2,16 @@ from hospital_parser import HospitalDataParser
 
 def test_simple_format():
     parser = HospitalDataParser()
-    test_message = """Clínica Médica - 80%
-Enfermaria Pediátrica - 60%
-Geriatria - 45%
-UCI Pediátrica - 70%
-UTI Fundhacrê - 85%
-UTI HSJ - 75%
-UTI HUERB 1 - 65%
-UTI HUERB 2 - 90%
-UTI INTO - 55%
-UTI Pediátrica - 80%"""
+    test_message = """UTI 1 (17 leitos) -  94,11%
+UTI 2 (10 leitos) - 80,00%
+UTI INTO (17 leitos) - 64,70%
+UTI HSJ (20 leitos) - 100,00%
+UTI FUNDAÇÃO (10 leitos) - 100,00%
+UTI Pediátrica (10 leitos) - 50,00%
+UCI Pediátrica (10 leitos) - 80,00%
+Enf. Pediátrica (50 leitos) -70,00%
+Geriatria (33 leitos) -  87,87%
+Clinica médica (30 leitos)- 90,90%"""
 
     try:
         data = parser.parse_message(test_message)

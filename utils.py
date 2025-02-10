@@ -49,37 +49,50 @@ def parse_simple_format(text: str) -> Dict:
         'occupied_icu': 0
     }
 
+    # Update unit mappings for new names
+    unit_mappings = {
+        'UTI 1': 'UTI HUERB 1',
+        'UTI 2': 'UTI HUERB 2',
+        'UTI INTO': 'UTI INTO',
+        'UTI HSJ': 'UTI HSJ',
+        'UTI FUNDAÇÃO': 'UTI Fundhacrê',
+        'UTI Pediátrica': 'UTI Pediátrica',
+        'UCI Pediátrica': 'UCI Pediátrica',
+        'Enf. Pediátrica': 'Enfermaria Pediátrica',
+        'Geriatria': 'Geriatria',
+        'Clinica médica': 'Clínica Médica'
+    }
+
     lines = [line.strip() for line in text.split('\n') if line.strip()]
 
     for line in lines:
-        parts = line.split('-')
-        if len(parts) != 2:
+        # Extract parts using regex for more robust parsing
+        match = re.match(r'(.+?)\s*\((\d+)\s*leitos?\)\s*-\s*(\d+[.,]\d+)%', line)
+        if not match:
             continue
 
-        name = parts[0].strip()
-        # Determinar o número total de leitos baseado no tipo de unidade
-        if name in CLINICAL_UNITS:
-            total_beds = CLINICAL_UNITS[name]
-            is_clinical = True
-        elif name in ICU_UNITS:
-            total_beds = ICU_UNITS[name]
-            is_clinical = False
-        else:
-            continue
+        display_name, total_beds, occupancy = match.groups()
+        name = unit_mappings.get(display_name.strip(), display_name.strip())
 
-        # Extrair porcentagem
-        occupancy_rate = parse_percentage(parts[1])
+        total_beds = int(total_beds)
+        occupancy_rate = float(occupancy.replace(',', '.'))
+
+        # Calculate occupied and available beds
         occupied_beds = int(round(total_beds * occupancy_rate / 100))
+        available_beds = total_beds - occupied_beds
+
+        # Determine if it's a clinical or ICU unit
+        is_clinical = name in CLINICAL_UNITS
 
         unit = {
             'name': name,
             'total_beds': total_beds,
             'occupancy_rate': occupancy_rate,
             'occupied_beds': occupied_beds,
-            'available_beds': total_beds - occupied_beds
+            'available_beds': available_beds
         }
 
-        # Atualizar estatísticas
+        # Update statistics
         if is_clinical:
             stats['occupied_clinical'] += occupied_beds
         else:
