@@ -19,6 +19,10 @@ args = "Telegram Bot"
 task = "workflow.run"
 args = "Test ReportLab"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "PDF Test"
+
 [[workflows.workflow]]
 name = "Telegram Bot"
 author = "agent"
@@ -46,6 +50,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python -c 'from reportlab.lib import colors; from reportlab.lib.pagesizes import A4; print(\"ReportLab importado com sucesso!\")'"
+
+[[workflows.workflow]]
+name = "PDF Test"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python test_pdf.py"
 
 [deployment]
 run = ["sh", "-c", "python bot.py"]

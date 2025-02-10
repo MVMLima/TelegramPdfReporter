@@ -12,14 +12,16 @@ class DefaultTemplate(BaseTemplate):
 
     def _create_logo_header(self) -> Image:
         """Create the header with CIEGES logo."""
-        logo_path = 'attached_assets/image_1739196333632.png'
+        logo_path = 'attached_assets/image_1739196996707.png'
+        print(f"Loading header logo from: {logo_path}")
         img = Image(logo_path, width=PAGE_WIDTH-2*MARGIN, height=1.5*cm)
         img.hAlign = 'CENTER'
         return img
 
     def _create_logo_footer(self) -> Image:
         """Create the footer with CIEGES logo."""
-        logo_path = 'attached_assets/image_1739196845139.png'
+        logo_path = 'attached_assets/image_1739197036571.png'
+        print(f"Loading footer logo from: {logo_path}")
         img = Image(logo_path, width=PAGE_WIDTH-2*MARGIN, height=1.5*cm)
         img.hAlign = 'CENTER'
         return img
@@ -113,10 +115,12 @@ class DefaultTemplate(BaseTemplate):
 
     def generate_pdf(self, data: Dict) -> io.BytesIO:
         """Generate PDF from hospital data using the default template."""
+        print("Generating PDF with CIEGES logos...")
         doc, buffer = self.create_document()
         story = []
 
         # Add header logo
+        print("Adding header logo...")
         story.append(self._create_logo_header())
         story.append(Spacer(1, 10))
 
@@ -136,10 +140,13 @@ class DefaultTemplate(BaseTemplate):
                 story.append(self._create_occupancy_table(hospital['units']))
 
         # Add footer logo with spacing
+        print("Adding footer logo...")
         story.append(Spacer(1, 30))
         story.append(self._create_logo_footer())
 
         # Build PDF
+        print("Building final PDF...")
         doc.build(story)
         buffer.seek(0)
+        print("PDF generation completed.")
         return buffer
