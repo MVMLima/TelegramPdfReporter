@@ -28,6 +28,7 @@ class DefaultTemplate(BaseTemplate):
 
     def _create_header_section(self, data: Dict) -> Table:
         """Create the green header section with title and date."""
+        print("Creating header section...")
         table_data = [
             ['INFORMAÇÕES GERAIS'],
             [f"INFORME DIÁRIO {datetime.now().strftime('%d/%m/%Y')}"]
@@ -47,16 +48,41 @@ class DefaultTemplate(BaseTemplate):
 
     def _create_summary_section(self, data: Dict) -> Table:
         """Create the metrics summary section."""
+        print("Creating summary section...")
+        # Calculate totals from the units data
+        clinical_beds = 123  # Total fixed
+        icu_beds = 84  # Total fixed
+
+        occupied_clinical = 0
+        occupied_icu = 0
+
+        print(f"Processing {len(data['units'])} units for summary...")
+        for unit in data['units']:
+            is_icu = 'UTI' in unit['name']
+            beds_occupied = int(round(unit['total_beds'] * unit['occupancy_rate'] / 100))
+
+            print(f"Unit: {unit['name']}")
+            print(f"Total beds: {unit['total_beds']}")
+            print(f"Occupancy rate: {unit['occupancy_rate']}%")
+            print(f"Calculated occupied beds: {beds_occupied}")
+
+            if is_icu:
+                occupied_icu += beds_occupied
+            else:
+                occupied_clinical += beds_occupied
+
+        print(f"Final totals - Clinical: {occupied_clinical}/{clinical_beds}, ICU: {occupied_icu}/{icu_beds}")
+
         metrics = [
             [
-                f"123\nLeitos Clínicos",
-                f"0\nLeitos Ocupados",
-                f"123\nLeitos Vagos"
+                f"{clinical_beds}\nLeitos Clínicos",
+                f"{occupied_clinical}\nLeitos Ocupados",
+                f"{clinical_beds - occupied_clinical}\nLeitos Vagos"
             ],
             [
-                f"84\nLeitos UTIs",
-                f"0\nUTIs Ocupadas",
-                f"84\nUTIs Vagas"
+                f"{icu_beds}\nLeitos UTIs",
+                f"{occupied_icu}\nUTIs Ocupadas",
+                f"{icu_beds - occupied_icu}\nUTIs Vagas"
             ]
         ]
 
@@ -76,17 +102,30 @@ class DefaultTemplate(BaseTemplate):
 
     def _create_occupancy_table(self, units: List[Dict]) -> Table:
         """Create the detailed occupancy table."""
+        print("Creating occupancy table...")
         table_data = [
             ['Unidade', '%', 'Ocupados', 'Disponível']
         ]
 
-        # Override all values to match example
+        print(f"Processing {len(units)} units for table...")
         for unit in units:
+            # Calculate the number of occupied beds based on occupancy rate
+            total_beds = unit['total_beds']
+            occupancy_rate = unit['occupancy_rate']
+            occupied_beds = int(round(total_beds * occupancy_rate / 100))
+            available_beds = total_beds - occupied_beds
+
+            print(f"Unit: {unit['name']}")
+            print(f"Total beds: {total_beds}")
+            print(f"Occupancy rate: {occupancy_rate}%")
+            print(f"Occupied beds: {occupied_beds}")
+            print(f"Available beds: {available_beds}")
+
             table_data.append([
-                f"{unit['name']} ({unit['total_beds']})",
-                f"0.00%",
-                "0",
-                str(unit['total_beds'])
+                f"{unit['name']} ({total_beds} leitos)",
+                f"{occupancy_rate:.2f}%",
+                str(occupied_beds),
+                str(available_beds)
             ])
 
         # Adjusted column widths to match the example
@@ -99,14 +138,14 @@ class DefaultTemplate(BaseTemplate):
 
         table = Table(table_data, colWidths=col_widths)
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),  # Header background
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header text color
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # Center all text
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Bold header
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),  # Regular text for data
+            ('FONTSIZE', (0, 0), (-1, 0), 12),  # Header font size
+            ('FONTSIZE', (0, 1), (-1, -1), 10),  # Data font size
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),  # Add grid lines
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
@@ -116,7 +155,9 @@ class DefaultTemplate(BaseTemplate):
 
     def generate_pdf(self, data: Dict) -> io.BytesIO:
         """Generate PDF from hospital data using the default template."""
-        print("Generating PDF with CIEGES logos...")
+        print("\n=== Starting PDF Generation ===")
+        print(f"Received data: {data}")
+
         doc, buffer = self.create_document()
         story = []
 
@@ -126,19 +167,23 @@ class DefaultTemplate(BaseTemplate):
         story.append(Spacer(1, 10))
 
         # Add header
+        print("Creating header section...")
         story.append(self._create_header_section(data))
         story.append(Spacer(1, 20))
 
         # Add summary metrics
+        print("Creating summary section...")
         story.append(self._create_summary_section(data))
         story.append(Spacer(1, 20))
 
         # Add occupancy table
-        if 'units' in data:
+        print("Adding occupancy table...")
+        if 'units' in data and data['units']:
             story.append(self._create_occupancy_table(data['units']))
-        elif 'hospitals' in data:
-            for hospital in data['hospitals']:
-                story.append(self._create_occupancy_table(hospital['units']))
+        else:
+            print("Warning: No units found in data!")
+            print(f"Available keys in data: {data.keys()}")
+            print(f"Data content: {data}")
 
         # Add footer logo with spacing
         print("Adding footer logo...")

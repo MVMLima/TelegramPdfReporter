@@ -1,46 +1,33 @@
-
 from typing import Dict, Optional
 from utils import extract_hospital_data, parse_simple_format
 
 class HospitalDataParser:
     """Parser for hospital occupancy data from text messages."""
-    
+
     @staticmethod
     def parse_message(message: str) -> Dict:
         """
         Parse hospital occupancy message into structured data.
-        
+
         Args:
             message: Raw message text containing hospital data
-            
+
         Returns:
             Dict containing parsed hospital data
-            
+
         Raises:
             ValueError: If message cannot be parsed
         """
         try:
-            # Check for simple percentage format
-            if all(line.strip().endswith('%') for line in message.split('\n') if line.strip()):
+            # Try parsing as simple percentage format first
+            lines = [line.strip() for line in message.split('\n') if line.strip()]
+            if any('leitos' in line and '%' in line for line in lines):
+                print("Parsing message in simple percentage format...")
                 return parse_simple_format(message)
 
-            # Parse detailed format
-            data = extract_hospital_data(message)
-            
-            # Extract occupancy rates section
-            occupancy_section = message.split('🔴Taxa de ocupação')[-1]
-            occupancy_rates = {}
-
-            for line in occupancy_section.split('\n'):
-                if '- ' not in line or '%' not in line:
-                    continue
-                    
-                unit_name, rate_part = line.strip().split('-')
-                rate = float(rate_part.replace('%', '').strip())
-                occupancy_rates[unit_name.strip()] = rate
-
-            data['occupancy_rates'] = occupancy_rates
-            return data
+            # If not simple format, try detailed format
+            print("Attempting to parse detailed format...")
+            return extract_hospital_data(message)
 
         except Exception as e:
             raise ValueError(f"Failed to parse hospital data: {str(e)}")
@@ -49,13 +36,15 @@ class HospitalDataParser:
     def validate_data(data: Dict) -> bool:
         """
         Validate parsed hospital data structure.
-        
+
         Args:
             data: Parsed hospital data dictionary
-            
+
         Returns:
             bool indicating if data is valid
         """
+        print(f"Validating data structure: {data.keys()}")
+
         if not data:
             return False
 
@@ -63,12 +52,13 @@ class HospitalDataParser:
             return HospitalDataParser._validate_detailed_format(data)
         elif 'units' in data:
             return HospitalDataParser._validate_simple_format(data)
-            
+
         return False
 
     @staticmethod
     def _validate_detailed_format(data: Dict) -> bool:
         """Validate detailed format data structure."""
+        print("Validating detailed format...")
         for hospital in data['hospitals']:
             if not {'name', 'units'}.issubset(hospital.keys()):
                 return False
@@ -82,8 +72,10 @@ class HospitalDataParser:
     @staticmethod
     def _validate_simple_format(data: Dict) -> bool:
         """Validate simple format data structure."""
+        print("Validating simple format...")
         for unit in data['units']:
             required = {'name', 'total_beds', 'occupancy_rate'} 
             if not required.issubset(unit.keys()):
+                print(f"Missing required fields in unit: {unit.keys()}")
                 return False
         return True

@@ -50,12 +50,81 @@ class HospitalBot:
             "- Nome do hospital\n"
             "- Dados de ocupação por unidade\n"
             "- Taxas de ocupação\n\n"
+            "Exemplo de formato:\n"
+            "UTI 1 (17 leitos) - 94,11%\n"
+            "UTI 2 (10 leitos) - 80,00%\n"
+            "...\n\n"
             "Comandos:\n"
             "/template - Gerencia modelos de relatório\n"
             "/template list - Lista modelos disponíveis\n"
             "/template set <nome> - Define modelo padrão"
         )
         await update.message.reply_text(help_message)
+
+    async def process_message(self, update: Update, context: CallbackContext):
+        """Process incoming messages and generate PDF reports."""
+        try:
+            logger.info(f"Processing message from user {update.effective_user.id}")
+            logger.debug(f"Message content: {update.message.text[:100]}...")
+
+            # Send processing message
+            processing_message = await update.message.reply_text(
+                "🔄 Processando sua mensagem... Por favor, aguarde."
+            )
+
+            # Parse message
+            logger.info("Attempting to parse message...")
+            data = self.parser.parse_message(update.message.text)
+            logger.info(f"Message parsed successfully. Data structure: {data.keys()}")
+            logger.info(f"Number of units: {len(data.get('units', []))}")
+
+            # Log detailed unit information
+            for unit in data.get('units', []):
+                logger.info(f"Unit details: {unit}")
+
+            if not self.parser.validate_data(data):
+                logger.warning("Invalid message format")
+                await processing_message.edit_text(
+                    "❌ Erro: Formato da mensagem inválido. "
+                    "Certifique-se de que a mensagem está no formato correto."
+                )
+                return
+
+            # Log validation result
+            logger.info("Data validation passed successfully")
+
+            # Get user's preferred template
+            user_id = str(update.effective_user.id)
+            template_name = self.user_templates.get(user_id)
+            logger.info(f"Using template: {template_name or 'default'}")
+
+            # Generate PDF
+            logger.info("Starting PDF generation with data:")
+            logger.info(f"Data being sent to PDF generator: {data}")
+            pdf_buffer = self.pdf_generator.generate_pdf(data, template_name)
+            logger.info("PDF generated successfully")
+
+            # Send PDF
+            logger.info("Sending PDF to user...")
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=pdf_buffer,
+                filename='relatorio_hospitalar.pdf',
+                caption="📊 Aqui está seu relatório de ocupação hospitalar."
+            )
+            logger.info("PDF sent successfully")
+
+            # Delete processing message
+            await processing_message.delete()
+
+        except Exception as e:
+            logger.error(f"Error processing message: {str(e)}")
+            logger.error(traceback.format_exc())
+            error_message = (
+                "❌ Ocorreu um erro ao processar sua mensagem.\n"
+                "Por favor, verifique se o formato está correto e tente novamente."
+            )
+            await update.message.reply_text(error_message)
 
     async def handle_template(self, update: Update, context: CallbackContext):
         """Handle /template command."""
@@ -85,67 +154,6 @@ class HospitalBot:
             else:
                 await update.message.reply_text(f"❌ Modelo '{template_name}' não encontrado.")
 
-    async def process_message(self, update: Update, context: CallbackContext):
-        """Process incoming messages and generate PDF reports."""
-        try:
-            logger.info(f"Processing message from user {update.effective_user.id}")
-            logger.debug(f"Message content: {update.message.text[:100]}...")
-
-            # Send processing message
-            processing_message = await update.message.reply_text(
-                "🔄 Processando sua mensagem... Por favor, aguarde."
-            )
-
-            # Parse message
-            data = self.parser.parse_message(update.message.text)
-            logger.info("Message parsed successfully")
-
-            if not self.parser.validate_data(data):
-                logger.warning("Invalid message format")
-                await processing_message.edit_text(
-                    "❌ Erro: Formato da mensagem inválido. "
-                    "Certifique-se de que a mensagem está no formato correto."
-                )
-                return
-
-            # Get user's preferred template
-            user_id = str(update.effective_user.id)
-            template_name = self.user_templates.get(user_id)
-
-            # Generate PDF
-            logger.info(f"Generating PDF with template: {template_name or 'default'}")
-            pdf_buffer = self.pdf_generator.generate_pdf(data, template_name)
-            logger.info("PDF generated successfully")
-
-            # Send PDF
-            await context.bot.send_document(
-                chat_id=update.effective_chat.id,
-                document=pdf_buffer,
-                filename='relatorio_hospitalar.pdf',
-                caption="📊 Aqui está seu relatório de ocupação hospitalar."
-            )
-            logger.info("PDF sent successfully")
-
-            # Delete processing message
-            await processing_message.delete()
-
-        except Exception as e:
-            logger.error(f"Error processing message: {str(e)}")
-            logger.error(traceback.format_exc())
-            error_message = (
-                "❌ Ocorreu um erro ao processar sua mensagem.\n"
-                "Por favor, verifique se o formato está correto e tente novamente."
-            )
-            await update.message.reply_text(error_message)
-
-async def error_handler(update: Update, context: CallbackContext):
-    """Handle errors."""
-    logger.error(f"Update {update} caused error {context.error}")
-    if update:
-        await update.message.reply_text(
-            "❌ Ocorreu um erro inesperado. Por favor, tente novamente mais tarde."
-        )
-
 def main():
     """Start the bot."""
     # Create application
@@ -163,10 +171,8 @@ def main():
         hospital_bot.process_message
     ))
 
-    # Add error handler
-    application.add_error_handler(error_handler)
-
     # Start bot
+    logger.info("Starting bot...")
     application.run_polling()
 
 if __name__ == '__main__':

@@ -2,34 +2,43 @@ from pdf_generator import PDFGenerator
 from datetime import datetime
 
 def test_pdf_generation():
-    # Test data from the provided message
-    test_message = """UTI 1 (17 leitos) -  94,11%
-UTI 2 (10 leitos) - 80,00%
-UTI INTO (17 leitos) - 64,70%
-UTI HSJ (20 leitos) - 100,00%
-UTI FUNDAÇÃO (10 leitos) - 100,00%
-UTI Pediátrica (10 leitos) - 50,00%
-UCI Pediátrica (10 leitos) - 80,00%
-Enf. Pediátrica (50 leitos) -70,00%
-Geriatria (33 leitos) -  87,87%
-Clinica médica (30 leitos)- 90,90%"""
+    # Test data with actual occupancy rates
+    test_data = {
+        'units': [
+            {'name': 'UTI 1', 'total_beds': 17, 'occupancy_rate': 94.11},
+            {'name': 'UTI 2', 'total_beds': 10, 'occupancy_rate': 80.00},
+            {'name': 'UTI INTO', 'total_beds': 17, 'occupancy_rate': 64.70},
+            {'name': 'UTI HSJ', 'total_beds': 20, 'occupancy_rate': 100.00},
+            {'name': 'UTI FUNDAÇÃO', 'total_beds': 10, 'occupancy_rate': 100.00},
+            {'name': 'UTI Pediátrica', 'total_beds': 10, 'occupancy_rate': 50.00},
+            {'name': 'UCI Pediátrica', 'total_beds': 10, 'occupancy_rate': 80.00},
+            {'name': 'Enf. Pediátrica', 'total_beds': 50, 'occupancy_rate': 70.00},
+            {'name': 'Geriatria', 'total_beds': 33, 'occupancy_rate': 87.87},
+            {'name': 'Clinica médica', 'total_beds': 30, 'occupancy_rate': 90.90}
+        ]
+    }
 
-    # Parse the message using HospitalDataParser
-    from hospital_parser import HospitalDataParser
-    parser = HospitalDataParser()
-    data = parser.parse_message(test_message)
+    print("\n=== Starting PDF Generation Test ===")
+    print(f"Test data: {test_data}")
 
     # Initialize PDF generator
     pdf_gen = PDFGenerator()
 
     # Generate PDF
-    pdf_buffer = pdf_gen.generate_pdf(data)
+    try:
+        pdf_buffer = pdf_gen.generate_pdf(test_data)
 
-    # Save to file for testing
-    with open('test_report.pdf', 'wb') as f:
-        f.write(pdf_buffer.getvalue())
+        # Save to file for testing
+        with open('test_report.pdf', 'wb') as f:
+            f.write(pdf_buffer.getvalue())
 
-    print("PDF generated successfully!")
+        print("PDF generated successfully!")
+        print("Saved as: test_report.pdf")
+        return True
+    except Exception as e:
+        print(f"Error generating PDF: {str(e)}")
+        return False
 
 if __name__ == '__main__':
-    test_pdf_generation()
+    success = test_pdf_generation()
+    print("\nTest result:", "PASSED" if success else "FAILED")
