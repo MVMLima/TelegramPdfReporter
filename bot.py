@@ -9,8 +9,10 @@ from telegram.ext import (
 )
 from hospital_parser import HospitalDataParser
 from pdf_generator import PDFGenerator
+from email_sender import EmailSender
 from config import BOT_TOKEN
 import traceback
+import re
 
 # Update logging section to be more verbose
 logging.basicConfig(
@@ -23,7 +25,9 @@ class HospitalBot:
     def __init__(self):
         self.parser = HospitalDataParser()
         self.pdf_generator = PDFGenerator()
-        self.user_templates = {}  # Store user template preferences
+        self.email_sender = EmailSender()
+        self.user_templates = {}
+        self.user_reports = {}  # Store generated reports temporarily
         logger.info("HospitalBot initialized")
 
     async def start(self, update: Update, context: CallbackContext):
@@ -35,7 +39,8 @@ class HospitalBot:
             "eu irei gerar um relatório PDF formatado.\n\n"
             "Comandos disponíveis:\n"
             "/template - Lista e seleciona modelos de relatório\n"
-            "/help - Mostra instruções detalhadas"
+            "/help - Mostra instruções detalhadas\n"
+            "/share - Compartilha o último relatório por email"
         )
         await update.message.reply_text(welcome_message)
 
@@ -45,7 +50,8 @@ class HospitalBot:
             "📋 Instruções de uso:\n\n"
             "1. Envie uma mensagem com os dados hospitalares\n"
             "2. Aguarde o processamento\n"
-            "3. Receba o relatório em PDF\n\n"
+            "3. Receba o relatório em PDF\n"
+            "4. Use /share para compartilhar o relatório por email\n\n"
             "A mensagem deve conter:\n"
             "- Nome do hospital\n"
             "- Dados de ocupação por unidade\n"
@@ -57,9 +63,51 @@ class HospitalBot:
             "Comandos:\n"
             "/template - Gerencia modelos de relatório\n"
             "/template list - Lista modelos disponíveis\n"
-            "/template set <nome> - Define modelo padrão"
+            "/template set <nome> - Define modelo padrão\n"
+            "/share <email> - Compartilha o último relatório por email"
         )
         await update.message.reply_text(help_message)
+
+    async def share_report(self, update: Update, context: CallbackContext):
+        """Handle /share command to share the latest report via email."""
+        user_id = str(update.effective_user.id)
+
+        if user_id not in self.user_reports:
+            await update.message.reply_text(
+                "❌ Nenhum relatório disponível para compartilhar. "
+                "Por favor, gere um relatório primeiro."
+            )
+            return
+
+        # Check if email was provided
+        if not context.args:
+            await update.message.reply_text(
+                "Por favor, forneça um endereço de email após o comando.\n"
+                "Exemplo: /share email@exemplo.com"
+            )
+            return
+
+        email = context.args[0]
+        # Basic email validation
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            await update.message.reply_text("❌ Endereço de email inválido.")
+            return
+
+        pdf_data = self.user_reports[user_id]
+
+        # Send processing message
+        processing_msg = await update.message.reply_text(
+            "🔄 Enviando relatório por email... Por favor, aguarde."
+        )
+
+        if self.email_sender.send_report(email, pdf_data):
+            await processing_msg.edit_text(
+                "✅ Relatório enviado com sucesso para " + email
+            )
+        else:
+            await processing_msg.edit_text(
+                "❌ Erro ao enviar o relatório. Por favor, tente novamente."
+            )
 
     async def process_message(self, update: Update, context: CallbackContext):
         """Process incoming messages and generate PDF reports."""
@@ -78,10 +126,6 @@ class HospitalBot:
             logger.info(f"Message parsed successfully. Data structure: {data.keys()}")
             logger.info(f"Number of units: {len(data.get('units', []))}")
 
-            # Log detailed unit information
-            for unit in data.get('units', []):
-                logger.info(f"Unit details: {unit}")
-
             if not self.parser.validate_data(data):
                 logger.warning("Invalid message format")
                 await processing_message.edit_text(
@@ -90,19 +134,13 @@ class HospitalBot:
                 )
                 return
 
-            # Log validation result
-            logger.info("Data validation passed successfully")
-
-            # Get user's preferred template
-            user_id = str(update.effective_user.id)
-            template_name = self.user_templates.get(user_id)
-            logger.info(f"Using template: {template_name or 'default'}")
-
             # Generate PDF
             logger.info("Starting PDF generation with data:")
-            logger.info(f"Data being sent to PDF generator: {data}")
-            pdf_buffer = self.pdf_generator.generate_pdf(data, template_name)
-            logger.info("PDF generated successfully")
+            pdf_buffer = self.pdf_generator.generate_pdf(data,
+                self.user_templates.get(str(update.effective_user.id)))
+
+            # Store the PDF data for sharing
+            self.user_reports[str(update.effective_user.id)] = pdf_buffer.getvalue()
 
             # Send PDF
             logger.info("Sending PDF to user...")
@@ -110,7 +148,10 @@ class HospitalBot:
                 chat_id=update.effective_chat.id,
                 document=pdf_buffer,
                 filename='relatorio_hospitalar.pdf',
-                caption="📊 Aqui está seu relatório de ocupação hospitalar."
+                caption=(
+                    "📊 Aqui está seu relatório de ocupação hospitalar.\n"
+                    "Use /share email@exemplo.com para compartilhar por email."
+                )
             )
             logger.info("PDF sent successfully")
 
@@ -166,6 +207,7 @@ def main():
     application.add_handler(CommandHandler("start", hospital_bot.start))
     application.add_handler(CommandHandler("help", hospital_bot.help))
     application.add_handler(CommandHandler("template", hospital_bot.handle_template))
+    application.add_handler(CommandHandler("share", hospital_bot.share_report))
     application.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND,
         hospital_bot.process_message

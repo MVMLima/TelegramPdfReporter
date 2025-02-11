@@ -108,7 +108,10 @@ class DefaultTemplate(BaseTemplate):
         ]
 
         print(f"Processing {len(units)} units for table...")
-        for unit in units:
+        # Ordenar unidades por taxa de ocupação (decrescente)
+        sorted_units = sorted(units, key=lambda x: float(x['occupancy_rate']), reverse=True)
+
+        for unit in sorted_units:
             # Calculate the number of occupied beds based on occupancy rate
             total_beds = unit['total_beds']
             occupancy_rate = unit['occupancy_rate']
@@ -153,6 +156,46 @@ class DefaultTemplate(BaseTemplate):
         ]))
         return table
 
+    def _create_overview_section(self, data: Dict) -> Table:
+        """Create the overview section with total occupancy percentages."""
+        print("Creating overview section...")
+
+        # Calculate total occupancy percentage
+        total_beds = 0
+        total_occupied = 0
+
+        for unit in data['units']:
+            total_beds += unit['total_beds']
+            occupied = int(round(unit['total_beds'] * unit['occupancy_rate'] / 100))
+            total_occupied += occupied
+
+        occupied_percentage = (total_occupied / total_beds) * 100 if total_beds > 0 else 0
+        available_percentage = 100 - occupied_percentage
+
+        # Create table with overview information
+        table_data = [
+            ['Visão Geral'],
+            [f'Leitos Ocupados: {occupied_percentage:.1f}% dos leitos estão ocupados'],
+            [f'Leitos Vagos: {available_percentage:.1f}% dos leitos estão vagos']
+        ]
+
+        table = Table(table_data, colWidths=[PAGE_WIDTH-2*MARGIN])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),  # Header
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),  # Content
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),  # Header text
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),  # Content text
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),  # Left align all text
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),  # Bold header
+            ('FONTSIZE', (0, 0), (-1, 0), 14),  # Header size
+            ('FONTSIZE', (0, 1), (-1, -1), 12),  # Content size
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+        ]))
+        return table
+
     def generate_pdf(self, data: Dict) -> io.BytesIO:
         """Generate PDF from hospital data using the default template."""
         print("\n=== Starting PDF Generation ===")
@@ -174,6 +217,11 @@ class DefaultTemplate(BaseTemplate):
         # Add summary metrics
         print("Creating summary section...")
         story.append(self._create_summary_section(data))
+        story.append(Spacer(1, 20))
+
+        # Add overview section
+        print("Adding overview section...")
+        story.append(self._create_overview_section(data))
         story.append(Spacer(1, 20))
 
         # Add occupancy table
