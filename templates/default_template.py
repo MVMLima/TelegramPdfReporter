@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple
 from config import *
 from reportlab.lib.units import cm
+import os
 
 class DefaultTemplate(BaseTemplate):
     """Default template implementing the current PDF format."""
@@ -13,18 +14,32 @@ class DefaultTemplate(BaseTemplate):
     def _create_logo_header(self) -> Image:
         """Create the header with CIEGES logo."""
         logo_path = 'attached_assets/image_1739196996707.png'
-        print(f"Loading header logo from: {logo_path}")
-        img = Image(logo_path, width=PAGE_WIDTH-2*MARGIN, height=1.5*cm)
-        img.hAlign = 'CENTER'
-        return img
+        try:
+            if os.path.exists(logo_path):
+                img = Image(logo_path, width=PAGE_WIDTH-2*MARGIN, height=1.5*cm)
+                img.hAlign = 'CENTER'
+                return img
+            else:
+                print(f"Warning: Header logo file not found at {logo_path}")
+                return None
+        except Exception as e:
+            print(f"Error loading header logo: {str(e)}")
+            return None
 
     def _create_logo_footer(self) -> Image:
         """Create the footer with CIEGES logo."""
         logo_path = 'attached_assets/image_1739197036571.png'
-        print(f"Loading footer logo from: {logo_path}")
-        img = Image(logo_path, width=PAGE_WIDTH-2*MARGIN, height=1.5*cm)
-        img.hAlign = 'CENTER'
-        return img
+        try:
+            if os.path.exists(logo_path):
+                img = Image(logo_path, width=PAGE_WIDTH-2*MARGIN, height=1.5*cm)
+                img.hAlign = 'CENTER'
+                return img
+            else:
+                print(f"Warning: Footer logo file not found at {logo_path}")
+                return None
+        except Exception as e:
+            print(f"Error loading footer logo: {str(e)}")
+            return None
 
     def _create_header_section(self, data: Dict) -> Table:
         """Create the green header section with title and date."""
@@ -204,10 +219,12 @@ class DefaultTemplate(BaseTemplate):
         doc, buffer = self.create_document()
         story = []
 
-        # Add header logo
+        # Add header logo if available
         print("Adding header logo...")
-        story.append(self._create_logo_header())
-        story.append(Spacer(1, 10))
+        header_logo = self._create_logo_header()
+        if header_logo:
+            story.append(header_logo)
+            story.append(Spacer(1, 10))
 
         # Add header
         print("Creating header section...")
@@ -233,10 +250,12 @@ class DefaultTemplate(BaseTemplate):
             print(f"Available keys in data: {data.keys()}")
             print(f"Data content: {data}")
 
-        # Add footer logo with spacing
+        # Add footer logo if available
         print("Adding footer logo...")
-        story.append(Spacer(1, 30))
-        story.append(self._create_logo_footer())
+        footer_logo = self._create_logo_footer()
+        if footer_logo:
+            story.append(Spacer(1, 30))
+            story.append(footer_logo)
 
         # Build PDF
         print("Building final PDF...")
