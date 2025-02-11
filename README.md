@@ -1,3 +1,8 @@
+## Descrição
+
+Projeto de bot para criação de relatórios de taxa de ocupação hospitalar no hospitais do Acre
+
+```bash
 git clone https://github.com/seu-usuario/hospital-report-bot.git
 cd hospital-report-bot
 ```
